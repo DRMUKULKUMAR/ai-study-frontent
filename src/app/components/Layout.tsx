@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet, NavLink, useLocation } from "react-router";
+import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { Menu, X, MessageSquare, LayoutDashboard, ClipboardList, TrendingDown, Sparkles, Bell, Search } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -68,8 +68,8 @@ export function Layout() {
               JS
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">John Smith</p>
-              <p className="text-xs text-muted-foreground truncate">john@example.com</p>
+              <p className="text-sm font-medium text-sidebar-foreground truncate">Sumit </p>
+              <p className="text-xs text-muted-foreground truncate">sumitsony958@gmail.com</p>
             </div>
           </div>
         </div>

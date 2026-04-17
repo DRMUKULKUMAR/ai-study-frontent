@@ -7,7 +7,7 @@ export function Chat() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "Hi John! I'm your AI learning assistant. What would you like to learn about today?",
+      content: "Hi Sumit! I'm your AI learning assistant. What would you like to learn about today?",
       timestamp: "10:30 AM",
     },
     {

@@ -1,6 +1,6 @@
 import { TrendingUp, Brain, Target, Award, ArrowRight, Clock, Search, Plus } from "lucide-react";
 import { motion } from "motion/react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 
 export function Dashboard() {
   const stats = [
@@ -60,7 +60,7 @@ export function Dashboard() {
           className="hidden lg:block"
         >
           <h1 className="font-[var(--font-display)] text-4xl lg:text-5xl font-semibold text-foreground mb-2">
-            Welcome back, John
+            Welcome back, Summit!
           </h1>
           <p className="text-lg text-muted-foreground">
             You're making great progress. Keep learning!
