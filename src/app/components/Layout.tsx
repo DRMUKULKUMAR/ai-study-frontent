@@ -25,7 +25,7 @@ export function Layout() {
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <h1 className="font-[var(--font-display)] text-xl font-semibold text-sidebar-foreground">
-              Lumina
+              StudyBuddy
             </h1>
           </div>
         </div>
@@ -84,7 +84,7 @@ export function Layout() {
               JS
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Hi Jenifer!</p>
+              <p className="text-xs text-muted-foreground">Hi Sumit!</p>
               <p className="text-sm font-semibold text-foreground">Good morning</p>
             </div>
           </div>
