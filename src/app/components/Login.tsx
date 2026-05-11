@@ -82,6 +82,7 @@ export function Login() {
                     onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
                     className="w-full bg-transparent text-sm text-foreground outline-none"
                     placeholder="John Doe"
+                    autoComplete="name"
                   />
                 </div>
               </label>
@@ -98,6 +99,7 @@ export function Login() {
                   onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
                   className="w-full bg-transparent text-sm text-foreground outline-none"
                   placeholder="you@example.com"
+                  autoComplete="email"
                 />
               </div>
             </label>
@@ -114,6 +116,7 @@ export function Login() {
                   onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
                   className="w-full bg-transparent text-sm text-foreground outline-none"
                   placeholder="Minimum 8 characters"
+                  autoComplete={isRegisterMode ? "new-password" : "current-password"}
                 />
               </div>
             </label>
@@ -136,6 +139,7 @@ export function Login() {
                     }
                     className="w-full bg-transparent text-sm text-foreground outline-none"
                     placeholder="Re-enter password"
+                    autoComplete="new-password"
                   />
                 </div>
               </label>
