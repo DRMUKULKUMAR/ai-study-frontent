@@ -1,221 +1,240 @@
-import { useState } from "react";
-import { Send, Sparkles, TrendingDown, Lightbulb, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
+import { BookmarkPlus, LoaderCircle, Send, Sparkles, TrendingDown } from "lucide-react";
+import { generateChatReply } from "../lib/ai-client";
+import { fetchServerChatHistory } from "../lib/study-api";
+import {
+  getChatHistory,
+  prependHistory,
+  pushNotification,
+  saveChatHistory,
+} from "../lib/local-db";
+import { useDashboardData } from "../hooks/use-dashboard-data";
+import type { ChatMessage } from "../types/domain";
+
+const greetingMessage: ChatMessage = {
+  id: "assistant-greeting",
+  role: "assistant",
+  content: "Welcome back. Ask anything and I will adapt explanations to your weak topics in real time.",
+  timestamp: new Date().toISOString(),
+};
 
 export function Chat() {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content: "Hi Sumit! I'm your AI learning assistant. What would you like to learn about today?",
-      timestamp: "10:30 AM",
-    },
-    {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { weakTopics } = useDashboardData();
+
+  useEffect(() => {
+    const local = getChatHistory();
+    setMessages(local.length ? local : [greetingMessage]);
+
+    void (async () => {
+      try {
+        const serverHistory = await fetchServerChatHistory();
+        if (Array.isArray(serverHistory) && serverHistory.length) {
+          setMessages(serverHistory);
+        }
+      } catch {
+        // Server chat endpoint is optional.
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (messages.length) {
+      saveChatHistory(messages);
+    }
+  }, [messages]);
+
+  const quickPrompts = useMemo(() => {
+    const fromWeakTopics = weakTopics.slice(0, 3).map((topic) => `Explain ${topic.topic} with easy examples`);
+    const defaults = ["Give me a 5-minute revision plan", "Test me with one quick question"];
+    return [...fromWeakTopics, ...defaults];
+  }, [weakTopics]);
+
+  const onSend = async () => {
+    if (!message.trim() || isSending) {
+      return;
+    }
+
+    setError(null);
+    const userPrompt = message.trim();
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
       role: "user",
-      content: "Can you help me understand integration by parts?",
-      timestamp: "10:31 AM",
-    },
-    {
-      role: "assistant",
-      content: "Of course! Integration by parts is a technique used to integrate products of functions. It's based on the product rule for differentiation. The formula is:\n\n∫u dv = uv - ∫v du\n\nWould you like me to walk through an example?",
-      timestamp: "10:31 AM",
-    },
-    {
-      role: "user",
-      content: "Yes please! Can you show me how to solve ∫x·e^x dx?",
-      timestamp: "10:32 AM",
-    },
-  ]);
+      content: userPrompt,
+      timestamp: new Date().toISOString(),
+    };
 
-  const weakTopics = [
-    { name: "Calculus Integration", confidence: 45 },
-    { name: "Organic Chemistry", confidence: 52 },
-    { name: "Classical Mechanics", confidence: 61 },
-  ];
-
-  const suggestions = [
-    "Explain the chain rule",
-    "Quiz me on derivatives",
-    "Show me examples of limits",
-  ];
-
-  const handleSend = () => {
-    if (!message.trim()) return;
-    setMessages([...messages, { role: "user", content: message, timestamp: "Now" }]);
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
     setMessage("");
+    setIsSending(true);
+
+    try {
+      const reply = await generateChatReply(nextMessages, userPrompt);
+      const assistantMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: reply,
+        timestamp: new Date().toISOString(),
+      };
+      const resolved = [...nextMessages, assistantMessage];
+      setMessages(resolved);
+
+      prependHistory({
+        id: crypto.randomUUID(),
+        type: "chat",
+        title: userPrompt.slice(0, 70),
+        createdAt: assistantMessage.timestamp,
+      });
+      pushNotification({
+        id: crypto.randomUUID(),
+        title: "AI reply ready",
+        body: "Your study assistant answered a new question.",
+        createdAt: assistantMessage.timestamp,
+        read: false,
+      });
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : "Unable to send message right now.");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const toggleBookmark = (id: string) => {
+    setMessages((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, bookmarked: !item.bookmarked } : item,
+      ),
+    );
   };
 
   return (
-    <div className="h-full flex">
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Chat Header - Desktop Only */}
-        <div className="hidden lg:flex h-16 border-b border-border bg-card px-6 items-center justify-between">
-          <div>
-            <h2 className="font-[var(--font-display)] text-xl font-semibold text-foreground">
-              Learning Session
-            </h2>
-            <p className="text-sm text-muted-foreground">Ask me anything about your studies</p>
+    <div className="h-full">
+      <div className="mx-auto grid h-full max-w-7xl gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:p-8">
+        <section className="flex min-h-0 flex-col rounded-2xl border border-white/30 bg-white/70 shadow-2xl backdrop-blur-2xl">
+          <div className="border-b border-white/20 px-4 py-4 lg:px-6">
+            <h1 className="font-[var(--font-display)] text-2xl font-semibold text-foreground lg:text-3xl">AI Study Chat</h1>
+            <p className="text-sm text-muted-foreground">Live AI tutoring with context-aware support.</p>
           </div>
-        </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-auto px-4 lg:px-6 py-4 lg:py-6 space-y-4 lg:space-y-6">
-          {messages.map((msg, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className={`flex gap-2 lg:gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              {msg.role === "assistant" && (
-                <div className="w-7 h-7 lg:w-8 lg:h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-white" />
-                </div>
-              )}
-              <div
-                className={`max-w-[85%] lg:max-w-2xl ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "bg-card border border-border shadow-sm"
-                } rounded-2xl px-4 lg:px-5 py-2.5 lg:py-3`}
+          <div className="min-h-0 flex-1 space-y-4 overflow-auto px-4 py-4 lg:px-6">
+            {messages.map((msg, index) => (
+              <motion.div
+                key={`${msg.id}-${index}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                <p className={`text-[10px] lg:text-xs mt-1.5 lg:mt-2 ${msg.role === "user" ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                  {msg.timestamp}
-                </p>
-              </div>
-              {msg.role === "user" && (
-                <div className="w-7 h-7 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-accent to-secondary flex items-center justify-center flex-shrink-0 text-white font-semibold text-xs lg:text-sm">
-                  JS
+                {msg.role === "assistant" && (
+                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-primary to-secondary text-white">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                )}
+                <div
+                  className={`max-w-[86%] rounded-2xl border px-4 py-3 text-sm shadow-sm lg:max-w-2xl ${
+                    msg.role === "user"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border/60 bg-white text-foreground"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-[11px] opacity-70">
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    {msg.role === "assistant" && (
+                      <button
+                        onClick={() => toggleBookmark(msg.id)}
+                        className={`rounded-lg px-2 py-1 text-[11px] transition ${
+                          msg.bookmarked ? "bg-secondary/15 text-secondary" : "bg-muted/50 text-muted-foreground"
+                        }`}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          <BookmarkPlus className="h-3 w-3" />
+                          {msg.bookmarked ? "Bookmarked" : "Bookmark"}
+                        </span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              )}
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+            {isSending && (
+              <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-white px-3 py-2 text-sm text-muted-foreground">
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+                Generating answer...
+              </div>
+            )}
+          </div>
 
-        {/* Input Area */}
-        <div className="border-t border-border bg-card p-3 lg:p-4 shadow-lg">
-          <div className="max-w-4xl mx-auto">
+          <div className="border-t border-white/20 px-4 py-3 lg:px-6">
+            {error && (
+              <div className="mb-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
             <div className="flex gap-2">
               <input
-                type="text"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Ask a question..."
-                className="flex-1 px-4 py-2.5 lg:py-3 bg-input-background border border-border rounded-xl lg:rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm text-foreground placeholder:text-muted-foreground"
+                onChange={(event) => setMessage(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    void onSend();
+                  }
+                }}
+                placeholder="Ask a question, request a summary, or practice concept..."
+                className="w-full rounded-xl border border-border/70 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary/60"
               />
               <button
-                onClick={handleSend}
-                disabled={!message.trim()}
-                className="w-10 h-10 lg:w-auto lg:px-5 bg-primary text-primary-foreground rounded-xl lg:rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-md active:scale-95"
+                onClick={() => void onSend()}
+                disabled={!message.trim() || isSending}
+                className="grid h-11 w-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-md transition hover:bg-primary/90 disabled:opacity-50"
               >
-                <Send className="w-4 h-4" />
+                <Send className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex gap-2 mt-2 lg:mt-3 flex-wrap">
-              {suggestions.map((suggestion, index) => (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {quickPrompts.map((prompt) => (
                 <button
-                  key={index}
-                  onClick={() => setMessage(suggestion)}
-                  className="px-3 py-1.5 text-xs bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors active:scale-95"
+                  key={prompt}
+                  onClick={() => setMessage(prompt)}
+                  className="rounded-lg border border-border/60 bg-white px-2.5 py-1.5 text-xs text-foreground transition hover:border-primary/40"
                 >
-                  {suggestion}
+                  {prompt}
                 </button>
               ))}
             </div>
           </div>
-        </div>
+        </section>
+
+        <aside className="hidden rounded-2xl border border-white/30 bg-white/70 p-5 shadow-2xl backdrop-blur-2xl lg:block">
+          <div className="mb-3 flex items-center gap-2">
+            <TrendingDown className="h-4 w-4 text-accent" />
+            <h2 className="font-[var(--font-display)] text-lg font-semibold text-foreground">Focus Topics</h2>
+          </div>
+          <div className="space-y-2">
+            {weakTopics.length ? (
+              weakTopics.map((topic) => (
+                <div key={topic.id} className="rounded-xl border border-border/50 bg-white px-3 py-2.5">
+                  <p className="text-sm font-medium text-foreground">{topic.topic}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Accuracy {topic.accuracy}% | Mistakes {topic.mistakes}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="rounded-xl border border-dashed border-border px-3 py-5 text-sm text-muted-foreground">
+                Topic insights will appear after activity sync.
+              </p>
+            )}
+          </div>
+        </aside>
       </div>
-
-      {/* Right Context Panel - Hidden on mobile */}
-      <motion.aside
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.2 }}
-        className="hidden lg:block w-80 border-l border-border bg-card overflow-auto"
-      >
-        <div className="p-6 space-y-6">
-          {/* Weak Topics */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingDown className="w-5 h-5 text-accent" />
-              <h3 className="font-[var(--font-display)] text-lg font-semibold text-foreground">
-                Focus Areas
-              </h3>
-            </div>
-            <div className="space-y-3">
-              {weakTopics.map((topic, index) => (
-                <motion.div
-                  key={topic.name}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
-                  className="p-3 bg-background rounded-lg border border-border hover:border-accent/50 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-foreground">{topic.name}</p>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-accent to-secondary rounded-full"
-                        style={{ width: `${topic.confidence}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground">{topic.confidence}%</span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          {/* Suggestions */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Lightbulb className="w-5 h-5 text-secondary" />
-              <h3 className="font-[var(--font-display)] text-lg font-semibold text-foreground">
-                Suggested Topics
-              </h3>
-            </div>
-            <div className="space-y-2">
-              {[
-                "Review integration techniques",
-                "Practice chemistry equations",
-                "Study Newton's laws",
-                "Explore trigonometry",
-              ].map((suggestion, index) => (
-                <motion.button
-                  key={index}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.05 }}
-                  className="w-full text-left p-3 bg-background rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-sm text-foreground"
-                >
-                  {suggestion}
-                </motion.button>
-              ))}
-            </div>
-          </div>
-
-          {/* Study Streak */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="p-4 bg-gradient-to-br from-secondary/10 to-primary/10 rounded-xl border border-secondary/20"
-          >
-            <p className="text-sm text-muted-foreground mb-1">Current Streak</p>
-            <p className="font-[var(--font-display)] text-3xl font-semibold text-foreground mb-1">
-              12 days
-            </p>
-            <p className="text-xs text-accent">Keep it up! 🔥</p>
-          </motion.div>
-        </div>
-      </motion.aside>
     </div>
   );
 }
+

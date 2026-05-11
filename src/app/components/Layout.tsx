@@ -1,139 +1,176 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { Menu, X, MessageSquare, LayoutDashboard, ClipboardList, TrendingDown, Sparkles, Bell, Search } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import {
+  BookOpenCheck,
+  ChartNoAxesCombined,
+  ClipboardList,
+  LogOut,
+  MessageSquare,
+  Search,
+  Sparkles,
+  Bell,
+  NotebookPen,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useAuth } from "../context/AuthContext";
+import { getNotifications, saveNotifications } from "../lib/local-db";
 
 export function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { user, logoutUser } = useAuth();
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [query, setQuery] = useState("");
 
-  const navItems = [
-    { to: "/", icon: LayoutDashboard, label: "Home" },
-    { to: "/chat", icon: MessageSquare, label: "Chat" },
-    { to: "/quiz", icon: ClipboardList, label: "Quiz" },
-    { to: "/mistakes", icon: TrendingDown, label: "Progress" },
-  ];
+  const navItems = useMemo(
+    () => [
+      { to: "/", icon: ChartNoAxesCombined, label: "Dashboard" },
+      { to: "/chat", icon: MessageSquare, label: "AI Chat" },
+      { to: "/quiz", icon: ClipboardList, label: "Smart Quiz" },
+      { to: "/notes", icon: NotebookPen, label: "Notes" },
+      { to: "/mistakes", icon: BookOpenCheck, label: "Progress" },
+    ],
+    [],
+  );
+
+  const notifications = useMemo(() => getNotifications().slice(0, 5), [isNotificationOpen]);
+  const unreadCount = notifications.filter((item) => !item.read).length;
+
+  const markNotificationsRead = () => {
+    const next = getNotifications().map((item) => ({ ...item, read: true }));
+    saveNotifications(next);
+  };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-background">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-sidebar border-r border-sidebar-border flex-col">
-        {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="font-[var(--font-display)] text-xl font-semibold text-sidebar-foreground">
-              StudyBuddy
-            </h1>
+    <div className="relative flex h-screen overflow-hidden bg-background">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_12%,rgba(95,203,179,0.2),transparent_40%),radial-gradient(circle_at_85%_10%,rgba(34,95,122,0.2),transparent_36%),radial-gradient(circle_at_50%_90%,rgba(235,248,255,0.8),transparent_50%)]" />
+
+      <aside className="relative z-10 hidden w-[280px] shrink-0 border-r border-white/20 bg-white/60 px-4 pb-5 pt-4 backdrop-blur-2xl lg:flex lg:flex-col">
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-white/30 bg-white/70 p-3 shadow-sm">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-primary to-secondary text-white shadow-lg">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="font-[var(--font-display)] text-xl font-semibold text-foreground">AI Study</p>
+            <p className="text-xs text-muted-foreground">Premium workspace</p>
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-1">
+        <nav className="space-y-1.5">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === "/"}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
                   isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    ? "bg-primary text-primary-foreground shadow-lg"
+                    : "text-foreground/80 hover:bg-white/70"
                 }`
               }
             >
-              {({ isActive }) => (
-                <>
-                  <item.icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNavDesktop"
-                      className="ml-auto w-1.5 h-1.5 rounded-full bg-accent"
-                    />
-                  )}
-                </>
-              )}
+              <item.icon className="h-5 w-5" />
+              <span className="font-medium">{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        {/* User Profile */}
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-semibold">
-              JS
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">Sumit </p>
-              <p className="text-xs text-muted-foreground truncate">sumitsony958@gmail.com</p>
-            </div>
-          </div>
+        <div className="mt-auto rounded-2xl border border-white/30 bg-white/75 p-3">
+          <p className="truncate text-sm font-medium text-foreground">{user?.name ?? "Learner"}</p>
+          <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+          <button
+            onClick={() => void logoutUser()}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border/70 px-3 py-2 text-sm text-foreground transition hover:bg-muted/50"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile Header */}
-        <header className="h-14 lg:hidden flex items-center justify-between px-4 bg-card border-b border-border/50 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-white font-semibold text-sm">
-              JS
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col">
+        <header className="border-b border-white/20 bg-white/55 px-4 py-3 backdrop-blur-xl lg:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="relative w-full max-w-xl">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search notes, quizzes, topics..."
+                className="w-full rounded-xl border border-white/25 bg-white/75 py-2 pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-primary/40"
+              />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Hi Sumit!</p>
-              <p className="text-sm font-semibold text-foreground">Good morning</p>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsNotificationOpen((value) => !value);
+                  markNotificationsRead();
+                }}
+                className="relative grid h-10 w-10 place-items-center rounded-xl border border-white/25 bg-white/75 transition hover:bg-white"
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5 text-foreground" />
+                {unreadCount > 0 && (
+                  <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-accent" />
+                )}
+              </button>
+              <div className="hidden rounded-xl border border-white/25 bg-white/75 px-3 py-2 text-right sm:block">
+                <p className="max-w-[160px] truncate text-sm font-medium text-foreground">{user?.name}</p>
+                <p className="max-w-[160px] truncate text-xs text-muted-foreground">{user?.email}</p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button className="p-2 hover:bg-accent/10 rounded-lg transition-colors">
-              <Search className="w-5 h-5 text-muted-foreground" />
-            </button>
-            <button className="p-2 hover:bg-accent/10 rounded-lg transition-colors relative">
-              <Bell className="w-5 h-5 text-muted-foreground" />
-              <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent rounded-full" />
-            </button>
-          </div>
+
+          <AnimatePresence>
+            {isNotificationOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="mt-3 rounded-2xl border border-white/30 bg-white/85 p-3 shadow-xl"
+              >
+                <p className="mb-2 text-sm font-medium text-foreground">Notifications</p>
+                <div className="space-y-2">
+                  {notifications.length ? (
+                    notifications.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-xl border border-border/50 bg-white px-3 py-2"
+                      >
+                        <p className="text-sm font-medium text-foreground">{item.title}</p>
+                        <p className="text-xs text-muted-foreground">{item.body}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
+                      No notifications yet.
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto pb-16 lg:pb-0">
+        <main className="min-h-0 flex-1 overflow-auto pb-20 lg:pb-0">
           <Outlet />
         </main>
 
-        {/* Mobile Bottom Navigation */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border/50 shadow-lg z-50">
-          <div className="flex items-center justify-around px-2 py-2 safe-area-bottom">
+        <nav className="fixed inset-x-2 bottom-2 z-20 rounded-2xl border border-white/30 bg-white/80 p-1.5 shadow-2xl backdrop-blur-xl lg:hidden">
+          <div className="grid grid-cols-5 gap-1">
             {navItems.map((item) => {
-              const isActive = item.to === "/"
-                ? location.pathname === "/"
-                : location.pathname.startsWith(item.to);
-
+              const isActive = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
               return (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className="flex flex-col items-center gap-1 px-4 py-2 min-w-[64px] relative"
+                  className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] transition ${
+                    isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  }`}
                 >
-                  <item.icon
-                    className={`w-6 h-6 transition-colors ${
-                      isActive ? "text-primary" : "text-muted-foreground"
-                    }`}
-                  />
-                  <span className={`text-xs font-medium transition-colors ${
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  }`}>
-                    {item.label}
-                  </span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNavMobile"
-                      className="absolute -top-[1px] left-1/2 -translate-x-1/2 w-12 h-0.5 bg-primary rounded-full"
-                    />
-                  )}
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.label.split(" ")[0]}</span>
                 </NavLink>
               );
             })}

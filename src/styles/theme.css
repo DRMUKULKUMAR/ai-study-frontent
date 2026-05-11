@@ -2,46 +2,46 @@
 
 :root {
   --font-size: 16px;
-  --font-display: 'Fraunces', serif;
-  --font-body: 'Outfit', sans-serif;
+  --font-display: "Manrope", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
 
-  --background: #FAF7F2;
-  --foreground: #2C2822;
-  --card: #FFFFFF;
-  --card-foreground: #2C2822;
-  --popover: #FFFFFF;
-  --popover-foreground: #2C2822;
-  --primary: #2C5F5D;
-  --primary-foreground: #FFFFFF;
-  --secondary: #8B9D83;
-  --secondary-foreground: #FFFFFF;
-  --muted: #E8E4DD;
-  --muted-foreground: #6B6660;
-  --accent: #D4816A;
-  --accent-foreground: #FFFFFF;
-  --destructive: #C55043;
-  --destructive-foreground: #FFFFFF;
-  --border: rgba(139, 157, 131, 0.15);
+  --background: #f4f9ff;
+  --foreground: #112031;
+  --card: #ffffff;
+  --card-foreground: #112031;
+  --popover: #ffffff;
+  --popover-foreground: #112031;
+  --primary: #195a73;
+  --primary-foreground: #ffffff;
+  --secondary: #2d9079;
+  --secondary-foreground: #ffffff;
+  --muted: #e6edf5;
+  --muted-foreground: #566879;
+  --accent: #d87162;
+  --accent-foreground: #ffffff;
+  --destructive: #b94a3f;
+  --destructive-foreground: #ffffff;
+  --border: rgba(17, 32, 49, 0.13);
   --input: transparent;
-  --input-background: #FFFFFF;
-  --switch-background: #D1D0CB;
+  --input-background: #ffffff;
+  --switch-background: #cad4df;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #8B9D83;
-  --chart-1: #2C5F5D;
-  --chart-2: #8B9D83;
-  --chart-3: #D4816A;
-  --chart-4: #B8A89A;
-  --chart-5: #E8C4A0;
-  --radius: 0.75rem;
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #2C2822;
-  --sidebar-primary: #2C5F5D;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F5F2ED;
-  --sidebar-accent-foreground: #2C2822;
-  --sidebar-border: rgba(139, 157, 131, 0.12);
-  --sidebar-ring: #8B9D83;
+  --ring: #2d9079;
+  --chart-1: #195a73;
+  --chart-2: #2d9079;
+  --chart-3: #d87162;
+  --chart-4: #7f94a9;
+  --chart-5: #aec6d8;
+  --radius: 0.9rem;
+  --sidebar: #eef5fc;
+  --sidebar-foreground: #112031;
+  --sidebar-primary: #195a73;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f9ff;
+  --sidebar-accent-foreground: #112031;
+  --sidebar-border: rgba(17, 32, 49, 0.12);
+  --sidebar-ring: #2d9079;
 }
 
 .dark {
@@ -127,59 +127,56 @@
     @apply border-border outline-ring/50;
   }
 
-  body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-body);
-  }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
-
   html {
     font-size: var(--font-size);
   }
 
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    background-image:
+      radial-gradient(circle at 8% 10%, rgba(103, 215, 187, 0.16), transparent 34%),
+      radial-gradient(circle at 88% 0%, rgba(42, 102, 130, 0.16), transparent 36%),
+      linear-gradient(180deg, #f7fbff 0%, #ecf5ff 100%);
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
   h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--text-3xl);
   }
 
   h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--text-2xl);
   }
 
   h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--text-xl);
   }
 
   h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
-
-  label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-size: var(--text-lg);
   }
 
   button {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     font-weight: var(--font-weight-medium);
-    line-height: 1.5;
   }
 
-  input {
-    font-size: var(--text-base);
+  input,
+  textarea {
+    font-size: var(--text-sm);
     font-weight: var(--font-weight-normal);
-    line-height: 1.5;
+    line-height: 1.45;
   }
 }
+
